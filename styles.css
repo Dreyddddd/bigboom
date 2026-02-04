@@ -1,0 +1,86 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+:root {
+  color-scheme: dark;
+  font-family: "Press Start 2P", "VT323", "Segoe UI", sans-serif;
+  background: #0a0b12;
+  color: #e6e8f2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #1f2030, #0a0b12 60%);
+  padding: 24px;
+}
+
+.frame {
+  width: min(960px, 100%);
+  background: #141624;
+  border: 4px solid #2a2f49;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: grid;
+  gap: 20px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: clamp(20px, 4vw, 32px);
+}
+
+header p {
+  margin: 0;
+  color: #a6abd4;
+}
+
+.hud {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.hud__item {
+  background: #1f2337;
+  border: 2px solid #353a57;
+  padding: 8px 12px;
+}
+
+.canvas-wrap {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+canvas {
+  width: min(100%, 820px);
+  image-rendering: pixelated;
+  background: #0b0f1c;
+  border: 4px solid #343a56;
+}
+
+.hint {
+  font-size: 12px;
+  color: #a2a8d8;
+  text-align: center;
+}
+
+footer {
+  font-size: 12px;
+  color: #8f95c2;
+}
+
+@media (max-width: 600px) {
+  .hud {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

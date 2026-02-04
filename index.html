@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Сумрачные волны</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="frame">
+    <header>
+      <h1>Сумрачные волны</h1>
+      <p>Пиксельный платформер про охотника, который переживает волны нечисти.</p>
+    </header>
+    <div class="hud">
+      <div class="hud__item">❤️ Жизнь: <span id="life">5</span></div>
+      <div class="hud__item">🌑 Волна: <span id="wave">1</span></div>
+      <div class="hud__item">☠️ Убито: <span id="kills">0</span></div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="game" width="320" height="180"></canvas>
+      <div class="hint">
+        ← → : бег &nbsp; ↑/Z : прыжок &nbsp; X/Пробел : атака &nbsp; R : рестарт
+      </div>
+    </div>
+    <footer>
+      Сражайся на платформах, отбивай волны и не дай тьме накрыть долину.
+    </footer>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
