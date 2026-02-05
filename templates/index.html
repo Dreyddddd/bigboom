@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row align-items-center g-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm p-4">
+      <h1 class="display-6 fw-bold">Сервис челленджей для друзей</h1>
+      <p class="text-muted">
+        Создавайте привычки, соревнуйтесь в выполнении задач и набирайте очки.
+        Общайтесь, делитесь прогрессом и поднимайтесь в рейтинге.
+      </p>
+      <div class="d-flex gap-2">
+        {% if user %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">Перейти в панель</a>
+        {% else %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('register') }}">Начать</a>
+          <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('login') }}">Войти</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm p-4">
+      <h2 class="h4 fw-semibold">Топ-5 участников</h2>
+      <ul class="list-group list-group-flush">
+        {% for participant in top_users %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ participant.username }}</span>
+            <span class="badge bg-primary rounded-pill">{{ participant.points }} очков</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted">Пока нет участников.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
