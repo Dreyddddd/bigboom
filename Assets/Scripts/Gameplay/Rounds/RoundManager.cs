@@ -16,6 +16,7 @@ namespace BigBoom.Gameplay.Rounds
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private float preRoundDelay = 1.5f;
         [SerializeField] private float postRoundDelay = 2.5f;
+        [SerializeField] private string humanPlayerId = "Player_1";
 
         private readonly List<PlayerController> _players = new();
         private readonly Dictionary<string, int> _killsByPlayer = new();
@@ -64,7 +65,7 @@ namespace BigBoom.Gameplay.Rounds
 
             yield return new WaitForSeconds(preRoundDelay);
 
-            SpawnBots();
+            SpawnFighters();
             _weaponDropManager.BeginRoundDrops();
 
             while (_players.Count(p => p.IsAlive) > 1)
@@ -79,19 +80,31 @@ namespace BigBoom.Gameplay.Rounds
             yield return new WaitForSeconds(postRoundDelay);
         }
 
-        private void SpawnBots()
+        private void SpawnFighters()
         {
+            if (spawnPoints == null || spawnPoints.Length == 0)
+            {
+                Debug.LogError("RoundManager requires at least one spawn point.");
+                return;
+            }
+
+            SpawnPlayer(playerFactory.CreateHuman(humanPlayerId, spawnPoints[0].position));
+
             for (var i = 0; i < _sessionConfig.Bots; i++)
             {
-                var spawnPoint = spawnPoints[i % spawnPoints.Length];
-                var player = playerFactory.CreateBot($"Bot_{i + 1}", spawnPoint.position);
-                player.KilledEnemy += OnPlayerKilledEnemy;
-                player.Died += OnPlayerDied;
-                _players.Add(player);
-                if (!_killsByPlayer.ContainsKey(player.PlayerId))
-                {
-                    _killsByPlayer[player.PlayerId] = 0;
-                }
+                var spawnPoint = spawnPoints[(i + 1) % spawnPoints.Length];
+                SpawnPlayer(playerFactory.CreateBot($"Bot_{i + 1}", spawnPoint.position));
+            }
+        }
+
+        private void SpawnPlayer(PlayerController player)
+        {
+            player.KilledEnemy += OnPlayerKilledEnemy;
+            player.Died += OnPlayerDied;
+            _players.Add(player);
+            if (!_killsByPlayer.ContainsKey(player.PlayerId))
+            {
+                _killsByPlayer[player.PlayerId] = 0;
             }
         }
 

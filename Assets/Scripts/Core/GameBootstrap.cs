@@ -13,6 +13,7 @@ namespace BigBoom.Core
         [SerializeField] private TerrainGenerator terrainGenerator;
         [SerializeField] private LeaderboardPresenter leaderboardPresenter;
         [SerializeField] private WeaponDropManager weaponDropManager;
+        [SerializeField] private bool autoStartOnSceneLoad = true;
 
         private SessionConfig _sessionConfig;
 
@@ -24,7 +25,10 @@ namespace BigBoom.Core
 
         private void Start()
         {
-            StartSession();
+            if (autoStartOnSceneLoad)
+            {
+                StartSession();
+            }
         }
 
         public void StartSession()

@@ -13,18 +13,20 @@ namespace BigBoom.Gameplay.Combat
         private PlayerController _owner;
         private DestructibleTerrain _terrain;
         private Rigidbody2D _rigidbody;
+        private float _shotPowerMultiplier = 1f;
 
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody2D>();
         }
 
-        public void Launch(WeaponDefinition weapon, Vector2 direction, PlayerController owner, DestructibleTerrain terrain)
+        public void Launch(WeaponDefinition weapon, Vector2 direction, float shotPowerMultiplier, PlayerController owner, DestructibleTerrain terrain)
         {
             _weapon = weapon;
             _owner = owner;
             _terrain = terrain;
-            _rigidbody.velocity = direction.normalized * weapon.ProjectileSpeed;
+            _shotPowerMultiplier = Mathf.Max(0.1f, shotPowerMultiplier);
+            _rigidbody.velocity = direction.normalized * weapon.ProjectileSpeed * _shotPowerMultiplier;
         }
 
         private void OnCollisionEnter2D(Collision2D collision)
@@ -39,9 +41,10 @@ namespace BigBoom.Gameplay.Combat
 
         private void Explode(Vector2 point)
         {
-            _terrain.CarveCircle(point, _weapon.ExplosionRadius);
+            var explosionRadius = _weapon.ExplosionRadius * Mathf.Lerp(0.9f, 1.35f, Mathf.InverseLerp(0.2f, 2.2f, _shotPowerMultiplier));
+            _terrain.CarveCircle(point, explosionRadius);
 
-            var hits = Physics2D.OverlapCircleAll(point, _weapon.ExplosionRadius, LayerMask.GetMask("Player"));
+            var hits = Physics2D.OverlapCircleAll(point, explosionRadius, LayerMask.GetMask("Player"));
             foreach (var hit in hits)
             {
                 if (!hit.TryGetComponent<PlayerController>(out var player))
@@ -54,7 +57,7 @@ namespace BigBoom.Gameplay.Combat
                     continue;
                 }
 
-                player.ApplyDamage(_weapon.Damage, _owner);
+                player.ApplyDamage(_weapon.Damage * _shotPowerMultiplier, _owner);
             }
 
             Destroy(gameObject);

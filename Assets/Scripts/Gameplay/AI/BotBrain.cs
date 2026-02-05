@@ -8,16 +8,21 @@ namespace BigBoom.Gameplay.AI
 {
     public class BotBrain : MonoBehaviour
     {
-        [SerializeField] private float thinkInterval = 0.4f;
-        [SerializeField] private float maxFireDistance = 14f;
+        [SerializeField] private float thinkInterval = 0.25f;
+        [SerializeField] private float maxFireDistance = 16f;
         [SerializeField] private LayerMask terrainMask;
+        [SerializeField] private float jumpDecisionCooldown = 0.9f;
 
         private readonly List<Vector2> _recentPositions = new();
 
         private PlayerController _owner;
         private float _nextThinkTime;
-        private Vector2 _movementIntent;
+        private float _nextJumpTime;
         private float _stuckTimer;
+        private float _strafeInput;
+
+        private bool _chargingShot;
+        private float _chargeEndTime;
 
         public void Initialize(PlayerController owner)
         {
@@ -38,8 +43,14 @@ namespace BigBoom.Gameplay.AI
                 _nextThinkTime = Time.time + thinkInterval;
             }
 
-            _owner.Move(_movementIntent.x);
+            _owner.SetMoveInput(_strafeInput);
             TrackStuckState();
+
+            if (_chargingShot && Time.time >= _chargeEndTime)
+            {
+                _owner.ReleaseFire();
+                _chargingShot = false;
+            }
         }
 
         private void Think()
@@ -50,22 +61,20 @@ namespace BigBoom.Gameplay.AI
 
             if (targets.Length == 0)
             {
-                _movementIntent = Vector2.zero;
+                _strafeInput = 0f;
                 return;
             }
 
             var target = SelectTacticalTarget(targets);
-            var toTarget = target.transform.position - _owner.transform.position;
+            var targetPos = (Vector2)target.transform.position;
+            var ownerPos = (Vector2)_owner.transform.position;
+            var toTarget = targetPos - ownerPos;
             var distance = toTarget.magnitude;
 
-            _movementIntent = GetMovementVector(toTarget, distance);
-
-            var hasLineOfFire = !Physics2D.Linecast(_owner.transform.position, target.transform.position, terrainMask);
-            if (distance <= maxFireDistance && hasLineOfFire)
-            {
-                var inaccuracy = Random.insideUnitCircle * 0.8f;
-                _owner.ShootAt((Vector2)target.transform.position + inaccuracy);
-            }
+            _owner.SetAimTarget(targetPos + Random.insideUnitCircle * 0.65f);
+            _strafeInput = ComputeStrafeInput(toTarget, distance);
+            TryJumpObstacle(toTarget);
+            TryShoot(targetPos, distance);
         }
 
         private PlayerController SelectTacticalTarget(PlayerController[] targets)
@@ -76,24 +85,73 @@ namespace BigBoom.Gameplay.AI
                 .First();
         }
 
-        private Vector2 GetMovementVector(Vector2 toTarget, float distance)
+        private float ComputeStrafeInput(Vector2 toTarget, float distance)
         {
-            if (_stuckTimer > 1.2f)
+            if (_stuckTimer > 0.9f)
             {
-                return new Vector2(Mathf.Sign(Random.Range(-1f, 1f)), 0f);
+                return Mathf.Sign(Random.Range(-1f, 1f));
             }
 
-            if (distance < 5f)
+            if (distance < 4.5f)
             {
-                return new Vector2(-Mathf.Sign(toTarget.x), 0f);
+                return -Mathf.Sign(toTarget.x);
             }
 
-            if (distance > 9f)
+            if (distance > 10f)
             {
-                return new Vector2(Mathf.Sign(toTarget.x), 0f);
+                return Mathf.Sign(toTarget.x);
             }
 
-            return Vector2.zero;
+            return 0f;
+        }
+
+        private void TryJumpObstacle(Vector2 toTarget)
+        {
+            if (Time.time < _nextJumpTime)
+            {
+                return;
+            }
+
+            var origin = (Vector2)_owner.transform.position + Vector2.up * 0.25f;
+            var direction = new Vector2(Mathf.Sign(toTarget.x), 0f);
+            if (direction == Vector2.zero)
+            {
+                direction = Vector2.right;
+            }
+
+            var blockedAhead = Physics2D.Raycast(origin, direction, 0.9f, terrainMask);
+            if (!blockedAhead)
+            {
+                return;
+            }
+
+            _owner.RequestJump();
+            _nextJumpTime = Time.time + jumpDecisionCooldown;
+        }
+
+        private void TryShoot(Vector2 targetPos, float distance)
+        {
+            if (_chargingShot)
+            {
+                return;
+            }
+
+            if (distance > maxFireDistance)
+            {
+                return;
+            }
+
+            var blocked = Physics2D.Linecast(_owner.transform.position, targetPos, terrainMask);
+            if (blocked)
+            {
+                return;
+            }
+
+            _owner.BeginFireCharge();
+
+            var desiredCharge = Mathf.Clamp(distance / maxFireDistance, 0.15f, 0.95f);
+            _chargeEndTime = Time.time + Mathf.Lerp(0.1f, 1.2f, desiredCharge) + Random.Range(0f, 0.2f);
+            _chargingShot = true;
         }
 
         private void TrackStuckState()
@@ -109,7 +167,7 @@ namespace BigBoom.Gameplay.AI
                 return;
             }
 
-            var drift = Vector2.Distance(_recentPositions[0], _recentPositions[^1]);
+            var drift = Vector2.Distance(_recentPositions[0], _recentPositions[_recentPositions.Count - 1]);
             _stuckTimer = drift < 0.18f ? _stuckTimer + Time.deltaTime : 0f;
         }
     }

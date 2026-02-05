@@ -2,58 +2,62 @@
 
 ## 1) Core layer
 
-- `GameBootstrap` — точка входа, инициализирует зависимости, стартует матч.
-- `GameSettings` — глобальные настройки сессии и режима.
-- `SessionConfig` — runtime-конфиг текущего матча.
-- `GameModeType` — enum игровых режимов (сейчас только `Deathmatch`).
+- `GameBootstrap` — точка входа, инициализация runtime-конфига, запуск матча.
+- `GameSettings` — параметры сессии (раунды, боты, режим).
+- `SessionConfig` — runtime DTO текущей игры.
+- `GameModeType` — enum режимов (сейчас `Deathmatch`).
 
-## 2) Match/Round flow
+## 2) Match / Round flow
 
-`RoundManager` управляет циклом:
-1. Очистка прошлого раунда.
+`RoundManager` управляет циклом раундов:
+1. Очистка предыдущего раунда.
 2. Генерация terrain.
-3. Спавн ботов.
-4. Запуск дропов оружия.
-5. Ожидание победителя раунда.
-6. Начисление очков, обновление лидерборда.
+3. Спавн **human player + N bots**.
+4. Запуск airdrop-оружия.
+5. Ожидание победителя в real-time.
+6. Обновление фрагов и лидерборда.
 
-## 3) Terrain subsystem
+## 3) Player control (real-time)
 
-- `TerrainGenerator` генерирует карту через Perlin noise.
-- `DestructibleTerrain` хранит runtime texture и вырезает "дырки" (`CarveCircle`).
+`PlayerController` поддерживает единый API управления как для человека, так и для AI:
+- `SetMoveInput`, `RequestJump`, `RequestFastFall`.
+- `SetAimTarget` (наведение в world-space).
+- `BeginFireCharge` / `ReleaseFire` (charge shot).
 
-### Важно
-Сейчас коллайдер terrain обновляется упрощенно.
-Для продакшн-качества нужно добавить contour extraction (marching squares)
-и rebuild `PolygonCollider2D` после деформации.
+Human input (`WASD + мышь + ЛКМ`) обрабатывается внутри `PlayerController`,
+если `IsHumanControlled = true`.
 
-## 4) Combat subsystem
+## 4) Terrain subsystem
 
-- `WeaponDefinition` (SO) — параметры оружия.
-- `WeaponDatabase` — реестр оружия, случайный выбор, seed-набор из 15 видов.
-- `Projectile` — полет, столкновения, урон, разрушение terrain.
-- `WeaponDropManager` — периодический air-drop.
-- `WeaponCrate` — коробка с подбираемым оружием.
+- `TerrainGenerator` создает карту на основе Perlin noise.
+- `DestructibleTerrain` хранит runtime texture и вырезает отверстия (`CarveCircle`) при взрывах.
 
-## 5) Players + AI
+> Сейчас collider обновляется упрощенно; для продакшна нужен rebuild контура
+> (marching squares / outline tracing) после каждой деформации.
 
-- `PlayerController` — HP, движение, стрельба, смерть, события фрагов.
-- `WeaponInventory` — очередь вооружения (pickup/use).
-- `PlayerFactory` — спавн ботов и привязка AI.
-- `BotBrain`:
-  - тактический выбор ближайшей цели,
-  - удержание дистанции,
-  - проверка линии огня,
-  - anti-stuck логика (если бот не сдвигается).
+## 5) Combat subsystem
 
-## 6) UI
+- `WeaponDefinition` (SO): характеристики оружия + параметры charge shot.
+- `WeaponDatabase`: реестр оружия и стартовый набор из 15 единиц.
+- `Projectile`: полет, столкновения, урон и деформация terrain с учетом силы выстрела.
+- `WeaponDropManager` / `WeaponCrate`: airdrop и pickup оружия.
 
-- `LobbySettingsPresenter` — выбор ботов/раундов перед стартом.
-- `LeaderboardPresenter` — live и final таблица фрагов.
+## 6) AI subsystem
 
-## 7) Расширяемость
+`BotBrain` использует те же команды, что и игрок:
+- выбирает тактическую цель,
+- держит комфортную дистанцию,
+- проверяет line-of-fire,
+- заряжает и отпускает выстрел в зависимости от дистанции,
+- прыгает при препятствиях и антизастревает.
 
-- Новые режимы: добавить в `GameModeType` + отдельный rule handler.
-- Новое оружие: новые SO + при необходимости особый `WeaponEffect` слой.
-- Более умный AI: utility scoring, оценка укрытий, обход воронок, прыжки.
-- Мультиплеер: отделить simulation state от view и перейти к deterministic tick.
+## 7) UI
+
+- `LobbySettingsPresenter` — настройка ботов/раундов.
+- `LeaderboardPresenter` — live/final таблица фрагов.
+
+## 8) Расширяемость
+
+- Новые режимы: расширить `GameModeType` + отдельные rule handlers.
+- Новое оружие: новые `WeaponDefinition` + спец-эффекты.
+- Мультиплеер: выделить simulation слой и перейти на deterministic tick.
